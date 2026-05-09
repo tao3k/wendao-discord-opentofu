@@ -1,0 +1,36 @@
+kind = "projection_receipt"
+intent_kind = "agenda_item"
+status = "applied"
+created_at = "2026-05-08T00:00:00Z"
+
+[source]
+operation_path = "examples/intents/knowledge_operation.agenda_session.toml"
+action_id = "open_agenda_item"
+workflow_node_ref = "bpmn:ServiceTask.OpenAgendaItem"
+graph_node_ref = "petgraph:open_agenda_item"
+intent_path = "examples/intents/agenda_item.attention_reading_session.toml"
+source_refs = ["wendao://paper/attention-is-all-you-need"]
+
+[projection]
+mode = "runtime"
+runtime = "scripts/create_work_item_post.py"
+display_state = "proposed"
+requested_tags = ["proposed"]
+applied_tags = ["proposed"]
+missing_tags = []
+
+[discord]
+server_id = "000000000000000000"
+channel_key = "agenda"
+channel_id = "000000000000000000"
+channel_type = 15
+thread_id = "000000000000000000"
+thread_name = "Read Attention Is All You Need"
+initial_message_id = "000000000000000000"
+parent_message_id = "000000000000000000"
+visible_parent_entry = true
+created = true
+
+[verification]
+command = "direnv exec . just create-agenda-item"
+dedupe = "active_thread_exact_name"

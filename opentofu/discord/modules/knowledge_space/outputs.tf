@@ -7,6 +7,26 @@ output "category" {
   }
 }
 
+output "categories" {
+  description = "Managed categories keyed by input category key."
+  value = merge(
+    {
+      knowledge = {
+        id         = discord_category_channel.knowledge.id
+        channel_id = discord_category_channel.knowledge.channel_id
+        name       = discord_category_channel.knowledge.name
+      }
+    },
+    {
+      for key, category in discord_category_channel.managed : key => {
+        id         = category.id
+        channel_id = category.channel_id
+        name       = category.name
+      }
+    }
+  )
+}
+
 output "channels" {
   description = "Managed text channels keyed by input channel key."
   value = {
@@ -25,6 +45,7 @@ output "forum_channels" {
       id         = channel.id
       channel_id = channel.channel_id
       name       = channel.name
+      tags       = var.forum_channels[key].tags
     }
   }
 }
@@ -46,6 +67,7 @@ output "all_channels" {
         channel_id = channel.channel_id
         name       = channel.name
         kind       = "forum"
+        tags       = var.forum_channels[key].tags
       }
     }
   )

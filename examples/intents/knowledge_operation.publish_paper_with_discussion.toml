@@ -1,0 +1,47 @@
+kind = "knowledge_operation"
+goal = "publish_paper_with_discussion"
+title = "Publish and discuss Attention Is All You Need"
+requested_by = "human"
+review_mode = "plan_then_apply"
+receipt_required = true
+
+[workflow]
+engine = "wendao"
+model = "bpmn"
+process_ref = "wendao://workflow/publish-paper-with-discussion"
+run_ref = "wendao://workflow-run/example"
+graph_ref = "wendao://workflow-graph/example"
+node_ref = "bpmn:SubProcess.PublishPaperWithDiscussion"
+
+[context]
+server_ref = "discord://server/wendao"
+source_refs = [
+  "wendao://paper/attention-is-all-you-need",
+]
+
+[[actions]]
+id = "announce_paper"
+kind = "paper_announcement"
+mode = "opentofu"
+target = "papers"
+intent_path = "examples/intents/paper_announcement.toml"
+workflow_node_ref = "bpmn:ServiceTask.AnnouncePaper"
+graph_node_ref = "petgraph:announce_paper"
+
+[[actions]]
+id = "open_discussion"
+kind = "discussion_post"
+mode = "runtime"
+target = "paper-discussion-forum"
+intent_path = "examples/intents/discussion_post.toml"
+workflow_node_ref = "bpmn:ServiceTask.OpenPaperDiscussion"
+graph_node_ref = "petgraph:open_discussion"
+depends_on = ["announce_paper"]
+
+[[actions]]
+id = "record_receipt"
+kind = "projection_receipt"
+mode = "record"
+workflow_node_ref = "bpmn:ServiceTask.RecordDiscordReceipt"
+graph_node_ref = "petgraph:record_receipt"
+depends_on = ["announce_paper", "open_discussion"]

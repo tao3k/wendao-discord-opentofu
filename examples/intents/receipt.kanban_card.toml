@@ -1,0 +1,39 @@
+kind = "projection_receipt"
+intent_kind = "kanban_card"
+status = "applied"
+created_at = "2026-05-08T00:00:00Z"
+
+[source]
+operation_path = "examples/intents/knowledge_operation.kanban_card.toml"
+action_id = "open_card"
+workflow_node_ref = "bpmn:ServiceTask.OpenKanbanCard"
+graph_node_ref = "petgraph:open_kanban_card"
+intent_path = "examples/intents/kanban_card.replication_task.toml"
+source_refs = [
+  "wendao://paper/attention-is-all-you-need",
+  "wendao://task/replicate-transformer-baseline",
+]
+
+[projection]
+mode = "runtime"
+runtime = "scripts/create_work_item_post.py"
+display_state = "todo"
+requested_tags = ["todo"]
+applied_tags = ["todo"]
+missing_tags = []
+
+[discord]
+server_id = "000000000000000000"
+channel_key = "kanban"
+channel_id = "000000000000000000"
+channel_type = 15
+thread_id = "000000000000000000"
+thread_name = "Replicate transformer baseline"
+initial_message_id = "000000000000000000"
+parent_message_id = "000000000000000000"
+visible_parent_entry = true
+created = true
+
+[verification]
+command = "direnv exec . just create-kanban-card"
+dedupe = "active_thread_exact_name"

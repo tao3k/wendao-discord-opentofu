@@ -1,0 +1,57 @@
+kind = "knowledge_operation"
+goal = "bootstrap_vertical_community"
+title = "Bootstrap a healthcare evidence community"
+requested_by = "workflow"
+review_mode = "human_approval_required"
+receipt_required = true
+
+[workflow]
+engine = "wendao"
+model = "bpmn"
+process_ref = "wendao://workflow/bootstrap-vertical-community"
+run_ref = "wendao://workflow-run/example-healthcare-bootstrap"
+graph_ref = "wendao://workflow-graph/example-healthcare-bootstrap"
+node_ref = "bpmn:SubProcess.BootstrapVerticalCommunity"
+
+[context]
+server_ref = "discord://server/wendao"
+profile_ref = "examples/intents/vertical_community.healthcare.toml"
+source_refs = [
+  "wendao://profile/healthcare-evidence-community",
+]
+
+[[actions]]
+id = "project_structure"
+kind = "knowledge_disco"
+mode = "opentofu"
+target = "Healthcare Knowledge"
+workflow_node_ref = "bpmn:ServiceTask.ProjectDiscordStructure"
+graph_node_ref = "petgraph:project_discord_structure"
+
+[[actions]]
+id = "seed_agenda"
+kind = "agenda_item"
+mode = "runtime"
+target = "agenda"
+intent_path = "examples/intents/agenda_item.attention_reading_session.toml"
+workflow_node_ref = "bpmn:ServiceTask.SeedAgenda"
+graph_node_ref = "petgraph:seed_agenda"
+depends_on = ["project_structure"]
+
+[[actions]]
+id = "seed_kanban"
+kind = "kanban_card"
+mode = "runtime"
+target = "kanban"
+intent_path = "examples/intents/kanban_card.replication_task.toml"
+workflow_node_ref = "bpmn:ServiceTask.SeedKanban"
+graph_node_ref = "petgraph:seed_kanban"
+depends_on = ["project_structure"]
+
+[[actions]]
+id = "record_receipt"
+kind = "projection_receipt"
+mode = "record"
+workflow_node_ref = "bpmn:ServiceTask.RecordBootstrapReceipt"
+graph_node_ref = "petgraph:record_bootstrap_receipt"
+depends_on = ["project_structure", "seed_agenda", "seed_kanban"]

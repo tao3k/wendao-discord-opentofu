@@ -1,0 +1,48 @@
+kind = "knowledge_operation"
+goal = "kanban_card"
+title = "Track a replication task as a Discord kanban card"
+requested_by = "workflow"
+review_mode = "plan_then_apply"
+receipt_required = true
+
+[workflow]
+engine = "wendao"
+model = "bpmn"
+process_ref = "wendao://workflow/kanban-card"
+run_ref = "wendao://workflow-run/example-kanban"
+graph_ref = "wendao://workflow-graph/example-kanban"
+node_ref = "bpmn:SubProcess.KanbanCardProjection"
+
+[context]
+server_ref = "discord://server/wendao"
+profile_ref = "examples/intents/vertical_community.healthcare.toml"
+source_refs = [
+  "wendao://paper/attention-is-all-you-need",
+  "wendao://task/replicate-transformer-baseline",
+]
+
+[[actions]]
+id = "open_card"
+kind = "kanban_card"
+mode = "runtime"
+target = "kanban"
+intent_path = "examples/intents/kanban_card.replication_task.toml"
+workflow_node_ref = "bpmn:ServiceTask.OpenKanbanCard"
+graph_node_ref = "petgraph:open_kanban_card"
+
+[[actions]]
+id = "set_initial_state"
+kind = "kanban_state"
+mode = "runtime"
+target = "kanban"
+workflow_node_ref = "bpmn:ServiceTask.SetInitialKanbanState"
+graph_node_ref = "petgraph:set_initial_kanban_state"
+depends_on = ["open_card"]
+
+[[actions]]
+id = "record_receipt"
+kind = "projection_receipt"
+mode = "record"
+workflow_node_ref = "bpmn:ServiceTask.RecordKanbanReceipt"
+graph_node_ref = "petgraph:record_kanban_receipt"
+depends_on = ["open_card", "set_initial_state"]

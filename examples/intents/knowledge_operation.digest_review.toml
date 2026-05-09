@@ -1,0 +1,39 @@
+kind = "knowledge_operation"
+goal = "digest_review_gate"
+title = "Review a healthcare digest before promotion"
+requested_by = "workflow"
+review_mode = "human_approval_required"
+receipt_required = true
+
+[workflow]
+engine = "wendao"
+model = "bpmn"
+process_ref = "wendao://workflow/healthcare-digest-review"
+run_ref = "wendao://workflow-run/example-digest-review"
+graph_ref = "wendao://workflow-graph/example-digest-review"
+node_ref = "bpmn:SubProcess.HealthcareDigestReview"
+
+[context]
+server_ref = "discord://server/wendao"
+profile_ref = "examples/intents/vertical_community.healthcare.toml"
+source_refs = [
+  "wendao://paper/attention-is-all-you-need",
+  "discord://thread/1502545186390016124",
+]
+
+[[actions]]
+id = "open_review_gate"
+kind = "review_gate"
+mode = "runtime"
+target = "review-queue"
+intent_path = "examples/intents/review_gate.digest_promotion.toml"
+workflow_node_ref = "bpmn:UserTask.ReviewDigestPromotion"
+graph_node_ref = "petgraph:review_digest_promotion"
+
+[[actions]]
+id = "record_receipt"
+kind = "projection_receipt"
+mode = "record"
+workflow_node_ref = "bpmn:ServiceTask.RecordDigestReviewReceipt"
+graph_node_ref = "petgraph:record_digest_review_receipt"
+depends_on = ["open_review_gate"]

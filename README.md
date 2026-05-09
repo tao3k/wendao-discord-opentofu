@@ -16,10 +16,18 @@ The project keeps the original `disco` idea clear:
 
 - `opentofu/discord/modules/knowledge_space`: category, text channels, forum
   channels, roles, and channel permission overrides.
+- `opentofu/discord/modules/vertical_community`: projects a vertical community
+  profile into a managed knowledge space.
 - `opentofu/discord/modules/paper_announcement`: durable paper announcement
   message.
-- `examples/intents`: draft user-layer manifest examples.
+- `examples/intents`: user-layer operation, intent, preview, and receipt
+  examples.
 - `docs`: Johnny.Decimal documentation topology and project records.
+
+The user layer is profile-driven. A Wendao user should be able to start from a
+vertical profile, such as healthcare or business, then let Wendao workflow
+produce Discord projection operations for structure, paper workflows, agenda,
+kanban, and receipts.
 
 ## Validation
 
@@ -54,6 +62,46 @@ direnv exec . just create-discussion-post
 
 Discussion forum posts are runtime objects, not OpenTofu state. The command
 writes a receipt under `.run/receipts`.
+
+Create agenda and kanban forum posts from user-layer intents:
+
+```shell
+direnv exec . just create-agenda-item
+direnv exec . just create-scheduled-event
+direnv exec . just create-kanban-card
+direnv exec . just create-review-gate
+direnv exec . just sync-forum-tags
+```
+
+These commands create or reuse a forum post/card and write receipts that carry
+the Wendao BPMN and petgraph refs. `sync-forum-tags` applies the profile's
+declared forum tags to Discord, then the work-item runtime can attach them to
+agenda items, kanban cards, and review gates.
+
+Render the compact preview for a user-layer operation:
+
+```shell
+direnv exec . just render-operation-preview
+```
+
+Render the compact preview for a vertical community profile:
+
+```shell
+direnv exec . just render-profile-preview
+```
+
+Project a vertical community profile into OpenTofu variables and plan it:
+
+```shell
+direnv exec . just render-profile-tfvars examples/intents/vertical_community.healthcare.toml
+direnv exec . just plan-vertical-profile-example examples/intents/vertical_community.healthcare.toml
+```
+
+Apply the HCL projection to a real server after reviewing the plan:
+
+```shell
+direnv exec . just apply-vertical-profile-example examples/intents/vertical_community.healthcare.toml
+```
 
 The intended documentation audit template command is:
 

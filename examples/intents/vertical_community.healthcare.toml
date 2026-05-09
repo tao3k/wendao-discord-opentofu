@@ -1,0 +1,150 @@
+kind = "vertical_community_profile"
+name = "Healthcare Evidence Community"
+domain = "healthcare"
+review_mode = "human_approval_required"
+
+[space]
+category = "Healthcare Knowledge"
+text_channels = [
+  "announcements",
+  "general-discussion",
+  "knowledge",
+]
+forum_channels = [
+  "evidence-library",
+  "case-review",
+  "agenda",
+  "kanban",
+]
+
+[space.forum_tags]
+evidence-library = [
+  "evidence",
+  "guideline",
+  "source-needed",
+  "needs-review",
+]
+case-review = [
+  "deidentified-case",
+  "clinical-question",
+  "needs-review",
+  "resolved",
+]
+agenda = [
+  "proposed",
+  "scheduled",
+  "in-session",
+  "done",
+  "follow-up",
+]
+kanban = [
+  "todo",
+  "doing",
+  "review",
+  "blocked",
+  "done",
+]
+
+[policy]
+personal_advice = "not_allowed"
+medical_claims = "evidence_required"
+destructive_changes = "human_approval_required"
+digest_publication = "review_required"
+runtime_discussion = "receipt_required"
+phi = "do_not_post"
+case_review = "deidentified_only"
+
+[[roles]]
+key = "reader"
+name = "Reader"
+
+[[roles]]
+key = "evidence_contributor"
+name = "Evidence Contributor"
+
+[[roles]]
+key = "reviewer"
+name = "Clinical Reviewer"
+
+[[roles]]
+key = "maintainer"
+name = "Healthcare Maintainer"
+
+[governance]
+category = "Healthcare Governance"
+position = 1
+text_channels = [
+  "moderation-log",
+  "agent-ops",
+  "privacy-checklist",
+]
+forum_channels = [
+  "review-queue",
+  "policy-decisions",
+  "incident-review",
+]
+allowed_role_keys = [
+  "reviewer",
+  "maintainer",
+  "privacy_steward",
+  "moderator",
+  "program_manager",
+  "agent_operator",
+]
+steward_role_keys = [
+  "maintainer",
+  "privacy_steward",
+  "moderator",
+]
+
+[governance.forum_tags]
+review-queue = [
+  "pending-review",
+  "needs-revision",
+  "approved",
+  "rejected",
+  "promote-to-knowledge",
+]
+policy-decisions = [
+  "proposed",
+  "approved",
+  "deprecated",
+]
+incident-review = [
+  "triage",
+  "investigating",
+  "resolved",
+  "follow-up",
+]
+
+[[governance.roles]]
+key = "privacy_steward"
+name = "Privacy Steward"
+
+[[governance.roles]]
+key = "moderator"
+name = "Healthcare Moderator"
+
+[[governance.roles]]
+key = "program_manager"
+name = "Program Manager"
+
+[[governance.roles]]
+key = "agent_operator"
+name = "Agent Operator"
+
+[[workflows]]
+goal = "publish_evidence_with_discussion"
+process_ref = "wendao://workflow/healthcare-evidence-review"
+
+[[workflows]]
+goal = "case_review_agenda"
+process_ref = "wendao://workflow/healthcare-case-review-agenda"
+
+[[workflows]]
+goal = "digest_review_gate"
+process_ref = "wendao://workflow/healthcare-digest-review"
+
+[[workflows]]
+goal = "moderation_incident"
+process_ref = "wendao://workflow/healthcare-moderation-incident"

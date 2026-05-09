@@ -1,0 +1,18 @@
+kind = "scheduled_event"
+target = "agenda"
+title = "Reading session: Attention Is All You Need"
+description = "Community reading session linked to the Wendao agenda workflow."
+entity_type = "external"
+location = "Discord agenda forum"
+scheduled_start_time = "2026-05-16T17:00:00-07:00"
+duration_minutes = 60
+receipt_required = true
+
+source_refs = [
+  "wendao://paper/attention-is-all-you-need",
+  "discord://thread/1502545186390016124",
+]
+
+[workflow]
+workflow_node_ref = "bpmn:ServiceTask.ScheduleSession"
+graph_node_ref = "petgraph:schedule_session"

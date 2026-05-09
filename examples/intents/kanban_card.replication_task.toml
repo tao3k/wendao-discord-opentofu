@@ -1,0 +1,25 @@
+kind = "kanban_card"
+target = "kanban"
+title = "Replicate transformer baseline"
+state = "todo"
+priority = "normal"
+receipt_required = true
+
+summary = "Track the replication task that follows the Attention Is All You Need reading session."
+owner_role = "Evidence Contributor"
+acceptance_criteria = [
+  "baseline setup is documented",
+  "results are linked back to Wendao evidence refs",
+  "open questions are converted into follow-up cards",
+]
+source_refs = [
+  "wendao://paper/attention-is-all-you-need",
+  "wendao://task/replicate-transformer-baseline",
+]
+forum_tags = [
+  "todo",
+]
+
+[workflow]
+workflow_node_ref = "bpmn:ServiceTask.OpenKanbanCard"
+graph_node_ref = "petgraph:open_kanban_card"

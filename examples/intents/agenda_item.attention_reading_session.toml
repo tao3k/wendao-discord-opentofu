@@ -1,0 +1,28 @@
+kind = "agenda_item"
+target = "agenda"
+title = "Read Attention Is All You Need"
+status = "proposed"
+receipt_required = true
+
+objective = "Prepare a community reading session and collect questions before scheduling."
+facilitator_role = "Facilitator"
+expected_outputs = [
+  "reading notes",
+  "open questions",
+  "follow-up kanban cards",
+]
+source_refs = [
+  "wendao://paper/attention-is-all-you-need",
+]
+forum_tags = [
+  "proposed",
+]
+
+[session]
+duration_minutes = 60
+timezone = "America/Los_Angeles"
+scheduled_for = ""
+
+[workflow]
+workflow_node_ref = "bpmn:ServiceTask.OpenAgendaItem"
+graph_node_ref = "petgraph:open_agenda_item"

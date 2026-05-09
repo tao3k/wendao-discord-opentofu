@@ -12,6 +12,15 @@ variable "category" {
   default = {}
 }
 
+variable "categories" {
+  description = "Additional Discord categories managed with this knowledge space."
+  type = map(object({
+    name     = string
+    position = optional(number)
+  }))
+  default = {}
+}
+
 variable "channels" {
   description = "Text channels to create under the knowledge category."
   type = map(object({
@@ -20,6 +29,7 @@ variable "channels" {
     position                 = optional(number)
     nsfw                     = optional(bool, false)
     category_id              = optional(string)
+    category_key             = optional(string)
     sync_perms_with_category = optional(bool, true)
   }))
   default = {
@@ -52,6 +62,8 @@ variable "forum_channels" {
     position                 = optional(number)
     nsfw                     = optional(bool, false)
     category_id              = optional(string)
+    category_key             = optional(string)
+    tags                     = optional(list(string), [])
     sync_perms_with_category = optional(bool, true)
   }))
   default = {}
@@ -77,6 +89,7 @@ variable "channel_permission_overrides" {
     type         = optional(string, "role")
     role_key     = optional(string)
     overwrite_id = optional(string)
+    everyone     = optional(bool, false)
     allow        = optional(number)
     deny         = optional(number)
   }))
@@ -93,9 +106,9 @@ variable "channel_permission_overrides" {
   validation {
     condition = alltrue([
       for override in values(var.channel_permission_overrides) :
-      override.role_key != null || override.overwrite_id != null
+      override.role_key != null || override.overwrite_id != null || override.everyone
     ])
-    error_message = "Each permission override must set either role_key or overwrite_id."
+    error_message = "Each permission override must set role_key, overwrite_id, or everyone."
   }
 
   validation {
@@ -120,5 +133,27 @@ variable "channel_permission_overrides" {
       override.allow != null || override.deny != null
     ])
     error_message = "Each permission override must set allow, deny, or both."
+  }
+}
+
+locals {
+  text_channel_category_keys = [
+    for channel in values(var.channels) : channel.category_key
+    if channel.category_key != null
+  ]
+  forum_channel_category_keys = [
+    for channel in values(var.forum_channels) : channel.category_key
+    if channel.category_key != null
+  ]
+  allowed_category_keys = concat(["knowledge"], keys(var.categories))
+}
+
+check "channel_category_keys" {
+  assert {
+    condition = alltrue([
+      for key in concat(local.text_channel_category_keys, local.forum_channel_category_keys) :
+      contains(local.allowed_category_keys, key)
+    ])
+    error_message = "Each channel category_key must reference knowledge or an existing categories key."
   }
 }

@@ -4,6 +4,10 @@ status = "applied"
 created_at = "2026-05-08T00:00:00Z"
 
 [source]
+operation_path = "examples/intents/knowledge_operation.publish_paper_with_discussion.toml"
+action_id = "announce_paper"
+workflow_node_ref = "bpmn:ServiceTask.AnnouncePaper"
+graph_node_ref = "petgraph:announce_paper"
 intent_path = "examples/intents/paper_announcement.toml"
 source_refs = ["wendao://paper/attention-is-all-you-need"]
 

@@ -4,6 +4,25 @@ resource "discord_category_channel" "knowledge" {
   position  = var.category.position
 }
 
+resource "discord_category_channel" "managed" {
+  for_each = var.categories
+
+  name      = each.value.name
+  server_id = var.server_id
+  position  = each.value.position
+}
+
+locals {
+  category_ids = merge(
+    {
+      knowledge = discord_category_channel.knowledge.id
+    },
+    {
+      for key, category in discord_category_channel.managed : key => category.id
+    }
+  )
+}
+
 resource "discord_role" "managed" {
   for_each = var.roles
 
@@ -21,7 +40,7 @@ resource "discord_text_channel" "managed" {
 
   name                     = each.value.name
   server_id                = var.server_id
-  category                 = each.value.category_id != null ? each.value.category_id : discord_category_channel.knowledge.id
+  category                 = each.value.category_id != null ? each.value.category_id : local.category_ids[coalesce(each.value.category_key, "knowledge")]
   position                 = each.value.position
   topic                    = each.value.topic
   nsfw                     = each.value.nsfw
@@ -33,7 +52,7 @@ resource "discord_forum_channel" "managed" {
 
   name                     = each.value.name
   server_id                = var.server_id
-  category                 = each.value.category_id != null ? each.value.category_id : discord_category_channel.knowledge.id
+  category                 = each.value.category_id != null ? each.value.category_id : local.category_ids[coalesce(each.value.category_key, "knowledge")]
   position                 = each.value.position
   topic                    = each.value.topic
   nsfw                     = each.value.nsfw
@@ -45,7 +64,7 @@ resource "discord_channel_permission" "managed" {
 
   channel_id   = try(discord_text_channel.managed[each.value.channel_key].id, discord_forum_channel.managed[each.value.channel_key].id)
   type         = each.value.type
-  overwrite_id = each.value.overwrite_id != null ? each.value.overwrite_id : discord_role.managed[each.value.role_key].id
+  overwrite_id = each.value.everyone ? var.server_id : each.value.overwrite_id != null ? each.value.overwrite_id : discord_role.managed[each.value.role_key].id
   allow        = each.value.allow
   deny         = each.value.deny
 }

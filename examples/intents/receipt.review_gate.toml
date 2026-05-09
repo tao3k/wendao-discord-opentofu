@@ -1,0 +1,39 @@
+kind = "projection_receipt"
+intent_kind = "review_gate"
+status = "applied"
+created_at = "2026-05-09T00:00:00Z"
+
+[source]
+operation_path = "examples/intents/knowledge_operation.digest_review.toml"
+action_id = "open_review_gate"
+workflow_node_ref = "bpmn:UserTask.ReviewDigestPromotion"
+graph_node_ref = "petgraph:review_digest_promotion"
+intent_path = "examples/intents/review_gate.digest_promotion.toml"
+source_refs = [
+  "wendao://paper/attention-is-all-you-need",
+  "discord://thread/1502545186390016124",
+]
+
+[projection]
+mode = "runtime"
+runtime = "scripts/create_work_item_post.py"
+display_state = "pending-review"
+requested_tags = ["pending-review"]
+applied_tags = ["pending-review"]
+missing_tags = []
+
+[discord]
+server_id = "000000000000000000"
+channel_key = "review-queue"
+channel_id = "000000000000000000"
+channel_type = 15
+thread_id = "000000000000000000"
+thread_name = "Review digest: Attention Is All You Need discussion"
+initial_message_id = "000000000000000000"
+parent_message_id = "000000000000000000"
+visible_parent_entry = true
+created = true
+
+[verification]
+command = "direnv exec . just create-review-gate"
+dedupe = "active_thread_exact_name"

@@ -1,0 +1,45 @@
+kind = "vertical_community_profile"
+name = "Business Intelligence Community"
+domain = "business"
+review_mode = "plan_then_apply"
+
+[space]
+category = "Business Knowledge"
+text_channels = [
+  "announcements",
+  "market-discussion",
+  "knowledge",
+]
+forum_channels = [
+  "market-intelligence",
+  "decision-agenda",
+  "kanban",
+  "research-requests",
+]
+
+[policy]
+market_claims = "source_required"
+sensitive_data = "do_not_post_by_default"
+destructive_changes = "human_approval_required"
+decision_records = "receipt_required"
+runtime_discussion = "receipt_required"
+
+[[roles]]
+key = "reader"
+name = "Reader"
+
+[[roles]]
+key = "analyst"
+name = "Analyst"
+
+[[roles]]
+key = "decision_reviewer"
+name = "Decision Reviewer"
+
+[[workflows]]
+goal = "publish_market_brief_with_discussion"
+process_ref = "wendao://workflow/business-market-brief"
+
+[[workflows]]
+goal = "decision_agenda"
+process_ref = "wendao://workflow/business-decision-agenda"

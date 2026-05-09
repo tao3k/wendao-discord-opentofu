@@ -17,16 +17,17 @@ GUILD_TEXT = 0
 GUILD_PUBLIC_THREAD = 11
 GUILD_FORUM = 15
 GUILD_MEDIA = 16
+SUPPORTED_KINDS = {"agenda_item", "kanban_card", "review_gate"}
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Create or ensure a Discord discussion thread/post from an intent manifest."
+        description="Create or ensure a Discord forum post/card from an agenda or kanban intent."
     )
     parser.add_argument(
         "--intent",
-        default="examples/intents/discussion_post.toml",
-        help="Path to discussion_post intent TOML.",
+        required=True,
+        help="Path to agenda_item or kanban_card intent TOML.",
     )
     parser.add_argument(
         "--receipt-path",
@@ -52,6 +53,11 @@ def parse_args() -> argparse.Namespace:
         "--graph-node-ref",
         default="",
         help="Optional Wendao petgraph node reference for this action.",
+    )
+    parser.add_argument(
+        "--command-label",
+        default="direnv exec . just create-work-item-post",
+        help="Command label written into the receipt verification section.",
     )
     parser.add_argument(
         "--dry-run",
@@ -113,9 +119,11 @@ def request_json(
 
 def load_intent(path: pathlib.Path) -> dict:
     intent = tomllib.loads(path.read_text())
-    if intent.get("kind") != "discussion_post":
-        raise SystemExit(f"{path} is not a discussion_post intent")
-    for key in ("target", "title", "prompt"):
+    kind = str(intent.get("kind", ""))
+    if kind not in SUPPORTED_KINDS:
+        supported = ", ".join(sorted(SUPPORTED_KINDS))
+        raise SystemExit(f"{path} kind must be one of: {supported}")
+    for key in ("target", "title"):
         if not str(intent.get(key, "")).strip():
             raise SystemExit(f"{path} is missing required field: {key}")
     return intent
@@ -139,26 +147,135 @@ def find_active_thread(threads: list[dict], parent_id: str, title: str) -> dict 
     return None
 
 
-def build_initial_message(intent: dict, intent_path: pathlib.Path) -> str:
+def slugify(value: str) -> str:
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
+    return slug or "work-item"
+
+
+def toml_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=True)
+
+
+def toml_array(values: list[str]) -> str:
+    return json.dumps(values, ensure_ascii=True)
+
+
+def display_state(intent: dict) -> str:
+    if intent.get("kind") == "agenda_item":
+        return str(intent.get("status", "proposed"))
+    if intent.get("kind") == "review_gate":
+        return str(intent.get("review_status", "pending-review"))
+    return str(intent.get("state", "todo"))
+
+
+def requested_tags(intent: dict) -> list[str]:
+    values = [str(item) for item in intent.get("forum_tags", []) if str(item).strip()]
+    state = display_state(intent)
+    if state and state not in values:
+        values.insert(0, state)
+    return values
+
+
+def resolve_applied_tags(target_channel: dict, requested: list[str]) -> tuple[list[str], list[str], list[str]]:
+    available = target_channel.get("available_tags") or []
+    by_name = {str(tag.get("name", "")).lower(): tag for tag in available}
+    applied_ids: list[str] = []
+    applied_names: list[str] = []
+    missing: list[str] = []
+
+    for name in requested:
+        tag = by_name.get(name.lower())
+        if tag and tag.get("id"):
+            applied_ids.append(str(tag["id"]))
+            applied_names.append(str(tag.get("name", name)))
+        else:
+            missing.append(name)
+
+    return applied_ids, applied_names, missing
+
+
+def list_lines(values: list[str]) -> list[str]:
+    return [f"- `{value}`" for value in values] if values else ["- none"]
+
+
+def render_agenda_message(intent: dict, intent_path: pathlib.Path) -> str:
+    session = intent.get("session", {})
     lines = [
-        f"Paper discussion for `{intent.get('paper_ref', 'unknown-paper')}`.",
+        "**Agenda item**",
         "",
-        intent["prompt"],
+        f"Objective: {intent.get('objective', '')}",
+        f"Status: `{display_state(intent)}`",
+        f"Facilitator: `{intent.get('facilitator_role', 'unassigned')}`",
+        f"Duration: `{session.get('duration_minutes', 'unspecified')}` minutes",
+        f"Scheduled for: `{session.get('scheduled_for') or 'unscheduled'}`",
+        "",
+        "Expected outputs:",
+        *list_lines([str(item) for item in intent.get("expected_outputs", [])]),
+        "",
+        "Wendao refs:",
+        *list_lines([str(item) for item in intent.get("source_refs", [])]),
         "",
         f"Intent: `{intent_path.as_posix()}`",
     ]
-    source_refs = intent.get("source_refs") or []
-    if source_refs:
-        lines.append("Sources: " + ", ".join(f"`{ref}`" for ref in source_refs))
     return "\n".join(lines)
 
 
-def build_parent_announcement(intent: dict, intent_path: pathlib.Path, thread_id: str | None = None) -> str:
+def render_kanban_message(intent: dict, intent_path: pathlib.Path) -> str:
+    lines = [
+        "**Kanban card**",
+        "",
+        f"Summary: {intent.get('summary', '')}",
+        f"State: `{display_state(intent)}`",
+        f"Priority: `{intent.get('priority', 'normal')}`",
+        f"Owner role: `{intent.get('owner_role', 'unassigned')}`",
+        "",
+        "Acceptance criteria:",
+        *list_lines([str(item) for item in intent.get("acceptance_criteria", [])]),
+        "",
+        "Wendao refs:",
+        *list_lines([str(item) for item in intent.get("source_refs", [])]),
+        "",
+        f"Intent: `{intent_path.as_posix()}`",
+    ]
+    return "\n".join(lines)
+
+
+def render_review_gate_message(intent: dict, intent_path: pathlib.Path) -> str:
+    lines = [
+        "**Review gate**",
+        "",
+        f"Decision needed: {intent.get('decision_prompt', '')}",
+        f"Status: `{display_state(intent)}`",
+        f"Reviewer roles: {', '.join(f'`{role}`' for role in intent.get('reviewer_roles', [])) or '`unassigned`'}",
+        "",
+        "Policy checks:",
+        *list_lines([str(item) for item in intent.get("policy_checks", [])]),
+        "",
+        "Decision options:",
+        *list_lines([str(item) for item in intent.get("decision_options", [])]),
+        "",
+        "Wendao refs:",
+        *list_lines([str(item) for item in intent.get("source_refs", [])]),
+        "",
+        f"Intent: `{intent_path.as_posix()}`",
+    ]
+    return "\n".join(lines)
+
+
+def build_initial_message(intent: dict, intent_path: pathlib.Path) -> str:
+    if intent.get("kind") == "agenda_item":
+        return render_agenda_message(intent, intent_path)
+    if intent.get("kind") == "review_gate":
+        return render_review_gate_message(intent, intent_path)
+    return render_kanban_message(intent, intent_path)
+
+
+def build_parent_entry(intent: dict, intent_path: pathlib.Path, thread_id: str | None = None) -> str:
     lines = [
         f"**{intent['title']}**",
         "",
-        f"Paper: `{intent.get('paper_ref', 'unknown-paper')}`",
-        f"Prompt: {intent['prompt']}",
+        f"Kind: `{intent['kind']}`",
+        f"State: `{display_state(intent)}`",
     ]
     if thread_id:
         lines.extend(["", f"Thread: <#{thread_id}>"])
@@ -166,12 +283,7 @@ def build_parent_announcement(intent: dict, intent_path: pathlib.Path, thread_id
     return "\n".join(lines)
 
 
-def find_parent_announcement(
-    channel_id: str,
-    thread_id: str,
-    thread_name: str,
-    token: str,
-) -> dict | None:
+def find_parent_entry(channel_id: str, thread_id: str, thread_name: str, token: str) -> dict | None:
     status, messages = request_json("GET", f"/channels/{channel_id}/messages?limit=100", token)
     if status != 200 or not isinstance(messages, list):
         return None
@@ -192,23 +304,37 @@ def create_parent_message(channel_id: str, content: str, token: str) -> dict:
         {"content": content},
     )
     if status not in (200, 201):
-        raise RuntimeError(f"failed to create parent discussion message: {message}")
+        raise RuntimeError(f"failed to create parent work-item message: {message}")
     return message
 
 
-def slugify(value: str) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
-    return slug or "discussion-post"
+def merge_tag_ids(thread: dict, applied_ids: list[str]) -> list[str]:
+    merged = [str(tag_id) for tag_id in thread.get("applied_tags", [])]
+    for tag_id in applied_ids:
+        if tag_id not in merged:
+            merged.append(tag_id)
+    return merged
 
 
-def toml_string(value: str) -> str:
-    return json.dumps(value, ensure_ascii=True)
+def update_thread_tags(thread: dict, applied_ids: list[str], token: str) -> dict:
+    merged = merge_tag_ids(thread, applied_ids)
+    if not merged:
+        return thread
+    status, body = request_json(
+        "PATCH",
+        f"/channels/{thread['id']}",
+        token,
+        {"applied_tags": merged},
+    )
+    if status != 200:
+        raise RuntimeError(f"failed to update work-item tags: {body}")
+    return body
 
 
 def render_receipt(receipt: dict) -> str:
     lines = [
         'kind = "projection_receipt"',
-        'intent_kind = "discussion_post"',
+        f"intent_kind = {toml_string(receipt['intent_kind'])}",
         f"status = {toml_string(receipt['status'])}",
         f"created_at = {toml_string(receipt['created_at'])}",
         "",
@@ -218,11 +344,15 @@ def render_receipt(receipt: dict) -> str:
         f"workflow_node_ref = {toml_string(receipt['workflow_node_ref'])}",
         f"graph_node_ref = {toml_string(receipt['graph_node_ref'])}",
         f"intent_path = {toml_string(receipt['intent_path'])}",
-        f"paper_ref = {toml_string(receipt['paper_ref'])}",
+        f"source_refs = {toml_array(receipt['source_refs'])}",
         "",
         "[projection]",
         'mode = "runtime"',
-        'runtime = "scripts/create_discussion_post.py"',
+        'runtime = "scripts/create_work_item_post.py"',
+        f"display_state = {toml_string(receipt['display_state'])}",
+        f"requested_tags = {toml_array(receipt['requested_tags'])}",
+        f"applied_tags = {toml_array(receipt['applied_tags'])}",
+        f"missing_tags = {toml_array(receipt['missing_tags'])}",
         "",
         "[discord]",
         f"server_id = {toml_string(receipt['server_id'])}",
@@ -254,6 +384,19 @@ def main() -> int:
     intent_path = pathlib.Path(args.intent)
     intent = load_intent(intent_path)
 
+    channel_key = str(intent["target"]).removeprefix("#")
+    thread_name = str(intent["title"])
+    state = display_state(intent)
+    tags = requested_tags(intent)
+
+    if args.dry_run:
+        print(
+            "DRY_RUN "
+            f"{intent['kind']} target={channel_key} title={thread_name} "
+            f"state={state} requested_tags={','.join(tags) or '-'}"
+        )
+        return 0
+
     token = required_env(
         ("TF_VAR_DISCORD_BOT_TOKEN", "DISCORD_BOT_TOKEN"),
         "TF_VAR_DISCORD_BOT_TOKEN",
@@ -262,14 +405,6 @@ def main() -> int:
         ("TF_VAR_DISCORD_SERVER_ID", "DISCORD_SERVER_ID", "DISCORD_GUILD_ID", "TF_VAR_server_id", "server_id"),
         "TF_VAR_DISCORD_SERVER_ID",
     )
-
-    channel_key = str(intent["target"]).removeprefix("#")
-    thread_name = str(intent["title"])
-    initial_message = build_initial_message(intent, intent_path)
-
-    if args.dry_run:
-        print(f"DRY_RUN discussion_post target={channel_key} title={thread_name}")
-        return 0
 
     channels_status, channels = request_json("GET", f"/guilds/{server_id}/channels", token)
     if channels_status != 200:
@@ -280,7 +415,7 @@ def main() -> int:
     channel_type = int(target_channel.get("type", -1))
     if channel_type not in (GUILD_TEXT, GUILD_FORUM, GUILD_MEDIA):
         print(
-            f"target channel type {channel_type} does not support discussion posts",
+            f"target channel type {channel_type} does not support work-item posts",
             file=sys.stderr,
         )
         return 2
@@ -299,20 +434,19 @@ def main() -> int:
     initial_message_id = ""
     parent_message_id = ""
     visible_parent_entry = False
+    applied_ids, applied_names, missing_tags = resolve_applied_tags(target_channel, tags)
 
     if existing_thread:
         thread = existing_thread
-        if channel_type == GUILD_TEXT:
-            parent_message = find_parent_announcement(
-                target_channel["id"],
-                thread["id"],
-                thread_name,
-                token,
-            )
+        if channel_type in (GUILD_FORUM, GUILD_MEDIA):
+            thread = update_thread_tags(thread, applied_ids, token)
+            visible_parent_entry = True
+        elif channel_type == GUILD_TEXT:
+            parent_message = find_parent_entry(target_channel["id"], thread["id"], thread_name, token)
             if parent_message is None:
                 parent_message = create_parent_message(
                     target_channel["id"],
-                    build_parent_announcement(intent, intent_path, thread["id"]),
+                    build_parent_entry(intent, intent_path, thread["id"]),
                     token,
                 )
             parent_message_id = str(parent_message.get("id") or "")
@@ -321,8 +455,10 @@ def main() -> int:
         payload = {
             "name": thread_name,
             "auto_archive_duration": 10080,
-            "message": {"content": initial_message},
+            "message": {"content": build_initial_message(intent, intent_path)},
         }
+        if applied_ids:
+            payload["applied_tags"] = applied_ids
         create_status, thread = request_json(
             "POST",
             f"/channels/{target_channel['id']}/threads",
@@ -330,7 +466,7 @@ def main() -> int:
             payload,
         )
         if create_status not in (200, 201):
-            print(f"failed to create forum discussion post: {thread}", file=sys.stderr)
+            print(f"failed to create work-item forum post: {thread}", file=sys.stderr)
             return 1
         initial_message_id = str((thread.get("message") or {}).get("id") or "")
         parent_message_id = initial_message_id
@@ -338,7 +474,7 @@ def main() -> int:
     else:
         parent_message = create_parent_message(
             target_channel["id"],
-            build_parent_announcement(intent, intent_path),
+            build_parent_entry(intent, intent_path),
             token,
         )
         parent_message_id = str(parent_message.get("id") or "")
@@ -353,21 +489,26 @@ def main() -> int:
             payload,
         )
         if create_status not in (200, 201):
-            print(f"failed to create discussion thread: {thread}", file=sys.stderr)
+            print(f"failed to create work-item thread: {thread}", file=sys.stderr)
             return 1
 
         initial_message_id = parent_message_id
         visible_parent_entry = True
 
     receipt = {
+        "intent_kind": str(intent["kind"]),
         "status": "applied",
         "created_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "operation_path": args.operation_path,
         "action_id": args.action_id,
-        "workflow_node_ref": args.workflow_node_ref,
-        "graph_node_ref": args.graph_node_ref,
+        "workflow_node_ref": args.workflow_node_ref or str((intent.get("workflow") or {}).get("workflow_node_ref", "")),
+        "graph_node_ref": args.graph_node_ref or str((intent.get("workflow") or {}).get("graph_node_ref", "")),
         "intent_path": intent_path.as_posix(),
-        "paper_ref": str(intent.get("paper_ref", "")),
+        "source_refs": [str(item) for item in intent.get("source_refs", [])],
+        "display_state": state,
+        "requested_tags": tags,
+        "applied_tags": applied_names,
+        "missing_tags": missing_tags,
         "server_id": server_id,
         "channel_key": channel_key,
         "channel_id": target_channel["id"],
@@ -378,7 +519,7 @@ def main() -> int:
         "parent_message_id": parent_message_id,
         "visible_parent_entry": visible_parent_entry,
         "created": created,
-        "command": "direnv exec . just create-discussion-post",
+        "command": args.command_label,
         "dedupe": "active_thread_exact_name",
     }
 
@@ -386,10 +527,12 @@ def main() -> int:
     receipt_path.parent.mkdir(parents=True, exist_ok=True)
     receipt_path.write_text(render_receipt(receipt))
 
-    print(f"discussion thread id: {receipt['thread_id']}")
+    print(f"work item thread id: {receipt['thread_id']}")
     print(f"created: {created}")
     if initial_message_id:
         print(f"initial message id: {initial_message_id}")
+    if missing_tags:
+        print("missing tags: " + ", ".join(missing_tags))
     print(f"receipt: {receipt_path}")
     return 0
 

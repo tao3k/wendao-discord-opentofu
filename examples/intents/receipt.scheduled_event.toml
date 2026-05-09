@@ -1,0 +1,33 @@
+kind = "projection_receipt"
+intent_kind = "scheduled_event"
+status = "applied"
+created_at = "2026-05-09T00:00:00Z"
+
+[source]
+operation_path = "examples/intents/knowledge_operation.agenda_session.toml"
+action_id = "schedule_session"
+workflow_node_ref = "bpmn:ServiceTask.ScheduleSession"
+graph_node_ref = "petgraph:schedule_session"
+intent_path = "examples/intents/scheduled_event.attention_reading_session.toml"
+source_refs = [
+  "wendao://paper/attention-is-all-you-need",
+  "discord://thread/1502545186390016124",
+]
+
+[projection]
+mode = "runtime"
+runtime = "scripts/create_scheduled_event.py"
+entity_type = "external"
+location = "Discord agenda forum"
+
+[discord]
+server_id = "000000000000000000"
+scheduled_event_id = "000000000000000000"
+scheduled_event_name = "Reading session: Attention Is All You Need"
+scheduled_start_time = "2026-05-17T00:00:00Z"
+scheduled_end_time = "2026-05-17T01:00:00Z"
+created = true
+
+[verification]
+command = "direnv exec . just create-scheduled-event"
+dedupe = "scheduled_event_name_and_start_time"
