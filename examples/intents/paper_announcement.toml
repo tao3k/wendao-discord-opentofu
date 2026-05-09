@@ -1,0 +1,13 @@
+kind = "paper_announcement"
+target = "papers"
+title = "Attention Is All You Need"
+url = "https://arxiv.org/abs/1706.03762"
+summary = "A transformer architecture paper."
+authors = ["Ashish Vaswani", "Noam Shazeer", "Niki Parmar"]
+tags = ["transformer", "attention", "paper"]
+discussion = "thread_preferred"
+durability = "managed"
+
+source_refs = [
+  "wendao://paper/attention-is-all-you-need"
+]

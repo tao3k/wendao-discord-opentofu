@@ -1,0 +1,12 @@
+kind = "knowledge_disco"
+name = "Wendao Knowledge"
+server_ref = "discord://server/example"
+
+[space]
+category = "Wendao Knowledge"
+default_channels = ["papers", "paper-discussion", "paper-discussion-forum", "knowledge"]
+
+[policy]
+destructive_changes = "human_approval_required"
+durable_messages = "hcl_managed"
+runtime_discussion = "agent_runtime_with_receipt"

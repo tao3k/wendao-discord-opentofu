@@ -1,0 +1,25 @@
+kind = "projection_receipt"
+intent_kind = "paper_announcement"
+status = "applied"
+created_at = "2026-05-08T00:00:00Z"
+
+[source]
+intent_path = "examples/intents/paper_announcement.toml"
+source_refs = ["wendao://paper/attention-is-all-you-need"]
+
+[projection]
+mode = "opentofu"
+module = "opentofu/discord/modules/paper_announcement"
+module_ref = "git:<commit-sha>"
+provider = "registry.opentofu.org/lucky3028/discord"
+provider_version = "2.6.0"
+
+[discord]
+server_id = "000000000000000000"
+channel_key = "papers"
+channel_id = "000000000000000000"
+message_id = "000000000000000000"
+
+[verification]
+plan_reviewed = true
+apply_command = "direnv exec . tofu -chdir=opentofu/discord/examples/knowledge_space_basic apply"

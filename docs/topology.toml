@@ -1,0 +1,87 @@
+# Wendao Discord OpenTofu Johnny.Decimal topology manifest.
+#
+# This is the project-local category catalog for path-first documentation.
+# Existing category meaning is stable unless a reviewed manifest change
+# explicitly supersedes it.
+
+[manifest]
+id = "wendao-discord-opentofu.docs-topology"
+framework = "johnny-decimal"
+mode = "path_first"
+coordinate_source = "path"
+note_file_shape = "AC.ID_semantic_name.md"
+category_directory_shape = "docs/AC_slug"
+policy_reference = "wendao-episteme/policies/johnny_decimal"
+
+[[areas]]
+range = "00-09"
+name = "Index and intake"
+description = "Documentation index, governed inbox, and authoring coordination."
+
+[[areas]]
+range = "10-19"
+name = "Product architecture"
+description = "Knowledge Disco product model and durable project framing."
+
+[[areas]]
+range = "20-29"
+name = "Human and user layer"
+description = "Human intent, user-facing workflows, and review expectations."
+
+[[areas]]
+range = "30-39"
+name = "Agent control boundary"
+description = "Agent projection, policy, receipts, and Wendao context boundaries."
+
+[[areas]]
+range = "40-49"
+name = "OpenTofu Discord library"
+description = "HCL module contracts, provider locks, examples, and state boundaries."
+
+[[areas]]
+range = "90-99"
+name = "Operations"
+description = "Validation, audit expectations, management records, and governance."
+
+[[categories]]
+id = "00"
+area = "00-09"
+directory = "docs/00_index"
+name = "JDex and documentation index"
+description = "Stable entrypoint for the documentation coordinate map."
+reserved = true
+
+[[categories]]
+id = "10"
+area = "10-19"
+directory = "docs/10_product"
+name = "Knowledge Disco product model"
+description = "Knowledge-first Discord workspace framing and first-layer structure."
+
+[[categories]]
+id = "20"
+area = "20-29"
+directory = "docs/20_user_layer"
+name = "Human user layer"
+description = "User intents, approval posture, and request language."
+
+[[categories]]
+id = "30"
+area = "30-39"
+directory = "docs/30_agent_boundary"
+name = "Human-Agent-Discord control boundary"
+description = "The governance gap between human intent, Agent projection, and Discord."
+
+[[categories]]
+id = "40"
+area = "40-49"
+directory = "docs/40_opentofu_library"
+name = "OpenTofu HCL library"
+description = "Reusable Discord module library and execution contract."
+
+[[categories]]
+id = "90"
+area = "90-99"
+directory = "docs/90_operations"
+name = "Validation and governance"
+description = "Local validation commands, audit template use, and management records."

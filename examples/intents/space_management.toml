@@ -1,0 +1,7 @@
+kind = "space_management"
+scope = "paper-discussion"
+request = "The channel is too noisy; propose cleanup and topic rules."
+
+[review]
+mode = "proposal_first"
+apply_requires_human = true

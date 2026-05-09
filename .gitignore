@@ -1,0 +1,15 @@
+/dist
+/node_modules
+/.terraform
+**/.terraform
+**/.terraform.tfstate.lock.info
+*.tfstate
+*.tfstate.*
+/.devenv
+/.cache
+/.run
+
+.DS_Store
+.vscode
+.env
+.pre-commit-config.yaml

@@ -1,0 +1,11 @@
+kind = "discussion_post"
+target = "paper-discussion-forum"
+paper_ref = "wendao://paper/attention-is-all-you-need"
+title = "Discussion: Attention Is All You Need"
+prompt = "What is still hard to reproduce or apply from this paper?"
+mode = "runtime"
+receipt_required = true
+
+source_refs = [
+  "wendao://paper/attention-is-all-you-need"
+]
